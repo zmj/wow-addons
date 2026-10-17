@@ -1,0 +1,5 @@
+## Interface: 110207, 120000, 120001
+## Title: DebugConsole
+## Notes: Run Lua and show the output in a copyable window
+## Version: 1.0
+DebugConsole.lua

@@ -7,6 +7,8 @@ ignores everything (`/*`) and then lists the addons we maintain.
 ## Tracked addons
 
 - `CastBarOnly/`: hides target/focus frame elements except the cast bar
+- `DebugConsole/`: `/dbg <lua>` runs a snippet and shows the output in a copyable
+  window (see below)
 
 To start tracking another addon, add `!/AddonName/` to `.gitignore` and list it above.
 
@@ -38,11 +40,10 @@ has worked best:
 2. The user runs it in game and pastes the output back.
 3. Repeat until the cause is clear, then edit the addon.
 
-CastBarOnly has a slash command for this: `/cb dbg <lua>`. It runs the code with
-`loadstring` + `pcall`, captures everything passed to `print`, and shows the code,
-output, any return value, and any errors in a modal with copyable text
-(Ctrl+A, Ctrl+C). `/cb list [target|focus]` dumps a frame's children and regions
-the same way.
+The DebugConsole addon provides the command for this: `/dbg <lua>`. It runs the
+code with `loadstring` + `pcall`, captures everything passed to `print`, and shows
+the code, output, any return value, and any errors in a modal with copyable text
+(Ctrl+A, Ctrl+C).
 
 When writing snippets for the user:
 
@@ -53,9 +54,14 @@ When writing snippets for the user:
 - Check for nil before indexing frames or globals, so a missing frame reports
   `nil` instead of throwing an error.
 
-New addons that need in-game investigation should get the same tool: a `dbg`
-subcommand plus a copyable output modal. Copy the implementation from
-`CastBarOnly.lua` (`CreateDebugModal` / `ExecuteDebugCode`).
+- Snippets run in the global environment, so they can't see an addon's `local`s
+  or its private `ns` table. If a probe needs that state, expose it through a
+  global, for example `_G.MyAddon = ns`.
+
+Other addons shouldn't build their own debug commands. When an addon needs a
+multi-line report, like CastBarOnly's `/cb list [target|focus]`, it should call
+`DebugConsole.Show(text)`. Declare `## OptionalDeps: DebugConsole` in the `.toc`,
+and fall back to `print` when `DebugConsole` isn't loaded.
 
 ## Notes
 
