@@ -24,13 +24,23 @@ local DEFAULT_MULTIPLIER = 2
 -- Vendor reagents known before the first merchant visit: [itemID] = copper per unit.
 -- A merchant visit replaces these with the live price.
 local SEED_VENDOR_PRICES = {
+    [240991] = 27500,   -- Sunglass Vial
+    [243060] = 3000,    -- Luminant Flux
+    [245881] = 2105,    -- Lexicologist's Vellum
+    [245882] = 3595,    -- Thalassian Songwater
+    [247811] = 125000,  -- Oil of Heartwood
+    [251665] = 700,     -- Silverleaf Thread
+    [251691] = 700,     -- Embroidery Floss
+    [253302] = 2105,    -- Malleable Wireframe
+    [253303] = 2105,    -- Pile of Junk
 }
 
+-- "unknown" (a supplied reagent has no price) gets no row color; it shows gray in the tooltip
 local COLORS = {
     good = { 0.1, 0.9, 0.1 },
     bad = { 0.9, 0.15, 0.1 },
-    unknown = { 0.95, 0.8, 0.1 },
 }
+local UNKNOWN_TEXT_COLOR = { 0.6, 0.6, 0.6 }
 
 local db
 
@@ -290,7 +300,7 @@ local function OnRowEnter(row)
         tooltip:SetOwner(row, "ANCHOR_RIGHT")
     end
 
-    local color = COLORS[eval.status]
+    local color = COLORS[eval.status] or UNKNOWN_TEXT_COLOR
     tooltip:AddLine(" ")
     tooltip:AddDoubleLine("OrderScout",
         "cost " .. Money(eval.cost) .. " / budget " .. Money(eval.budget),
