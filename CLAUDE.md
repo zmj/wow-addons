@@ -9,6 +9,8 @@ ignores everything (`/*`) and then lists the addons we maintain.
 - `CastBarOnly/`: hides target/focus frame elements except the cast bar
 - `DebugConsole/`: `/dbg <lua>` runs a snippet and shows the output in a copyable
   window (see below)
+- `OrderScout/`: colors crafting order rows by the cost of the reagents you'd
+  supply, using vendor and AH prices it records as you browse
 
 To start tracking another addon, add `!/AddonName/` to `.gitignore` and list it above.
 

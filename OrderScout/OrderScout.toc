@@ -1,0 +1,7 @@
+## Interface: 120105
+## Title: OrderScout
+## Notes: Color crafting order rows by the cost of the reagents you'd supply
+## Version: 1.0
+## SavedVariables: OrderScoutDB
+## OptionalDeps: DebugConsole
+OrderScout.lua
