@@ -249,7 +249,7 @@ local function HideFrameElements(frameType)
     end
 
     config.hidden = true
-    print("|cff00ff00CastBarOnly:|r " .. frameType .. " elements hidden (cast bar preserved)")
+    -- print("|cff00ff00CastBarOnly:|r " .. frameType .. " elements hidden (cast bar preserved)")
 end
 
 -- Frames that shouldn't be manually shown (they manage their own visibility)
