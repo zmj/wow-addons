@@ -1,41 +1,13 @@
-# Compiled Lua sources
-luac.out
+# This repo lives at the WoW Interface/AddOns level, alongside Blizzard and
+# third-party addons it does not own. Ignore everything by default and opt in
+# only the addons we maintain.
 
-# luarocks build files
-*.src.rock
-*.zip
-*.tar.gz
+/*
 
-# Object files
-*.o
-*.os
-*.ko
-*.obj
-*.elf
+# Repo files
+!/.gitignore
+!/CLAUDE.md
+!/LICENSE
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-*.def
-*.exp
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
+# Tracked addons (add a line per addon: !/AddonName/)
+!/CastBarOnly/
