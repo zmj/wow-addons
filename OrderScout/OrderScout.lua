@@ -10,16 +10,22 @@ local addonName, ns = ...
 --     runs when the AH opens) records minPrice.
 -- The cheaper of the two is used.
 --
--- An order is "good" when the reagents you supply cost no more than
--- commission (tipAmount) x multiplier. The multiplier stands in for the value
--- of the order's rewards without pricing them.
+-- Rows are colored by what the reagents you supply cost, relative to the
+-- commission (tipAmount):
+--   green   cost <= commission x green multiplier (default 1)
+--   yellow  cost <= commission x yellow multiplier (default 2)
+--   red     anything more
+--   none    a supplied reagent has no known price
+-- The yellow band stands in for the value of the order's rewards without
+-- pricing them.
 --
--- Commands: /os            report for the order list currently shown
---           /os mult <n>   set the commission multiplier (default 2)
---           /os prices     list known prices
+-- Commands: /os                    report for the order list currently shown
+--           /os mult <green> [yel] set the commission multipliers
+--           /os prices             list known prices
 --------------------------------------------------------------------------------
 
-local DEFAULT_MULTIPLIER = 2
+local DEFAULT_GREEN_MULTIPLIER = 1
+local DEFAULT_YELLOW_MULTIPLIER = 2
 
 -- Vendor reagents known before the first merchant visit: [itemID] = copper per unit.
 -- A merchant visit replaces these with the live price.
@@ -38,6 +44,7 @@ local SEED_VENDOR_PRICES = {
 -- "unknown" (a supplied reagent has no price) gets no row color; it shows gray in the tooltip
 local COLORS = {
     good = { 0.1, 0.9, 0.1 },
+    marginal = { 0.95, 0.8, 0.1 },
     bad = { 0.9, 0.15, 0.1 },
 }
 local UNKNOWN_TEXT_COLOR = { 0.6, 0.6, 0.6 }
@@ -65,7 +72,9 @@ end
 local function InitDB()
     OrderScoutDB = OrderScoutDB or {}
     db = OrderScoutDB
-    db.multiplier = db.multiplier or DEFAULT_MULTIPLIER
+    db.multiplier = nil -- replaced by the green/yellow pair
+    db.greenMultiplier = db.greenMultiplier or DEFAULT_GREEN_MULTIPLIER
+    db.yellowMultiplier = db.yellowMultiplier or DEFAULT_YELLOW_MULTIPLIER
     db.prices = db.prices or {}
 
     for itemID, price in pairs(SEED_VENDOR_PRICES) do
@@ -164,7 +173,7 @@ local function IsRequiredBasicSlot(slot)
     return slot.required and slot.reagentType == Enum.CraftingReagentType.Basic
 end
 
--- Returns { status, cost, budget, missing = { {itemIDs, quantity, price, source, time} } }
+-- Returns { status, cost, commission, missing = { {itemIDs, quantity, price, source, time} } }
 -- or nil when the row isn't an order we can evaluate
 local function EvaluateOrder(order)
     if not (order and order.orderID and order.spellID and order.reagents) or order.isRecraft then
@@ -211,11 +220,13 @@ local function EvaluateOrder(order)
         end
     end
 
-    eval.budget = (order.tipAmount or 0) * db.multiplier
+    eval.commission = order.tipAmount or 0
     if anyUnknown then
         eval.status = "unknown"
-    elseif eval.cost <= eval.budget then
+    elseif eval.cost <= eval.commission * db.greenMultiplier then
         eval.status = "good"
+    elseif eval.cost <= eval.commission * db.yellowMultiplier then
+        eval.status = "marginal"
     else
         eval.status = "bad"
     end
@@ -303,7 +314,7 @@ local function OnRowEnter(row)
     local color = COLORS[eval.status] or UNKNOWN_TEXT_COLOR
     tooltip:AddLine(" ")
     tooltip:AddDoubleLine("OrderScout",
-        "cost " .. Money(eval.cost) .. " / budget " .. Money(eval.budget),
+        "cost " .. Money(eval.cost) .. " / commission " .. Money(eval.commission),
         1, 0.82, 0, color[1], color[2], color[3])
     if #eval.missing == 0 then
         tooltip:AddLine("All reagents provided", 0.8, 0.8, 0.8)
@@ -330,7 +341,7 @@ end
 
 local function ShowReport()
     local output = {
-        "OrderScout: multiplier " .. db.multiplier .. ", row hook " .. (hooked and "installed" or "NOT installed"),
+        "OrderScout: green <= " .. db.greenMultiplier .. "x, yellow <= " .. db.yellowMultiplier .. "x, row hook " .. (hooked and "installed" or "NOT installed"),
     }
 
     local orders = C_CraftingOrders.GetCrafterOrders() or {}
@@ -342,8 +353,8 @@ local function ShowReport()
         local eval = EvaluateOrder(order)
         table.insert(output, "")
         if eval then
-            table.insert(output, string.format("[%s] %s (spell %d): cost %s / budget %s, %d required slots",
-                eval.status, ItemName(order.itemID), order.spellID, Money(eval.cost), Money(eval.budget), eval.slotsChecked))
+            table.insert(output, string.format("[%s] %s (spell %d): cost %s / commission %s, %d required slots",
+                eval.status, ItemName(order.itemID), order.spellID, Money(eval.cost), Money(eval.commission), eval.slotsChecked))
             for _, entry in ipairs(eval.missing) do
                 local left, right = DescribeMissing(entry)
                 table.insert(output, "    " .. left .. " [" .. table.concat(entry.itemIDs, "/") .. "]: " .. right)
@@ -413,16 +424,19 @@ function SlashCmdList.ORDERSCOUT(msg)
     if cmd == "" or cmd == "report" then
         ShowReport()
     elseif cmd == "mult" then
-        local value = tonumber(args[2])
-        if value and value > 0 then
-            db.multiplier = value
-            print("|cffff8800OrderScout:|r Multiplier set to " .. value .. "; reopen the order tab to recolor.")
+        local green = tonumber(args[2])
+        local yellow = tonumber(args[3]) or db.yellowMultiplier
+        if green and green > 0 and yellow >= green then
+            db.greenMultiplier = green
+            db.yellowMultiplier = yellow
+            print("|cffff8800OrderScout:|r Green <= " .. green .. "x, yellow <= " .. yellow .. "x commission; reopen the order tab to recolor.")
         else
-            print("|cffff8800OrderScout:|r Multiplier is " .. db.multiplier .. ". Usage: /os mult <number>")
+            print("|cffff8800OrderScout:|r Green <= " .. db.greenMultiplier .. "x, yellow <= " .. db.yellowMultiplier
+                .. "x commission. Usage: /os mult <green> [yellow]")
         end
     elseif cmd == "prices" then
         ShowPrices()
     else
-        print("|cffff8800OrderScout:|r Usage: /os [report|mult <n>|prices]")
+        print("|cffff8800OrderScout:|r Usage: /os [report|mult <green> [yellow]|prices]")
     end
 end
