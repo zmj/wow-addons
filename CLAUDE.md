@@ -10,6 +10,14 @@ ignores everything (`/*`) and then lists the addons we maintain.
 
 To start tracking another addon, add `!/AddonName/` to `.gitignore` and list it above.
 
+## Git workflow
+
+These addons are personal-use, with a single user. For work on the live game, commit
+and push straight to `main`. No branches or PRs are needed.
+
+The exception is PTR or beta work, such as preparing for an upcoming API change.
+Do that on a branch so `main` keeps matching the live client.
+
 ## Editing rules
 
 - **Read anything.** All addons in this folder can be used as reference: our own,
